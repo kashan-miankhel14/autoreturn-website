@@ -534,7 +534,30 @@ export default function Home() {
                   data-testid="text-hero-headline"
                   className="mt-5 text-balance font-[Outfit] text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl"
                 >
-                  Your Voice. Your AI. Your Privacy.
+                  <motion.span
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.6, delay: 0.1 }}
+                    className="block"
+                  >
+                    Your Voice.
+                  </motion.span>
+                  <motion.span
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="block text-[#0FA4AF]"
+                  >
+                    Your AI.
+                  </motion.span>
+                  <motion.span
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.6, delay: 0.3 }}
+                    className="block"
+                  >
+                    Your Privacy.
+                  </motion.span>
                 </h1>
                 <p
                   data-testid="text-hero-subheadline"
@@ -581,9 +604,15 @@ export default function Home() {
               >
                 <div
                   data-testid="card-hero-mockup"
-                  className="aur-card aur-noise relative overflow-hidden rounded-3xl p-6 sm:p-7"
+                  className="aur-card aur-noise relative overflow-hidden rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_-12px_rgba(15,164,175,0.3)]"
                 >
-                  <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#0FA4AF]/25 to-transparent" />
+                  <motion.div 
+                    animate={{ 
+                      opacity: [0.15, 0.3, 0.15],
+                    }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#0FA4AF]/40 to-transparent" 
+                  />
 
                   <div className="flex items-center justify-between">
                     <div className="font-[Outfit] text-sm font-semibold text-white">Unified Inbox</div>
@@ -856,6 +885,85 @@ export default function Home() {
           </div>
         </section>
 
+        <section id="faq" className="relative mx-auto max-w-4xl px-4 pb-16 sm:pb-20">
+          <SectionTitle
+            testId="section-faq"
+            kicker="FAQ"
+            title="Frequently Asked Questions"
+            desc="Everything you need to know about AutoReturn's privacy and performance."
+          />
+          <div className="mt-10 space-y-4">
+            {[
+              {
+                q: "Is AutoReturn really free?",
+                a: "Yes. AutoReturn is a free, open-source project. There are no hidden fees or subscriptions.",
+              },
+              {
+                q: "Does the AI send my data anywhere?",
+                a: "Absolutely not. AutoReturn uses Ollama to run AI models locally on your computer. Your emails and messages stay on your machine—always.",
+              },
+              {
+                q: "What AI model does it use?",
+                a: "AutoReturn supports any model available through Ollama, including Llama 3.1, Qwen, and Mistral. You can switch models anytime.",
+              },
+              {
+                q: "Can I use it offline?",
+                a: "Yes! Once your emails are synced, you can read, search, and even compose drafts completely offline.",
+              },
+            ].map((faq, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="aur-card aur-noise rounded-2xl p-6"
+              >
+                <h3 className="font-semibold text-white">{faq.q}</h3>
+                <p className="mt-2 text-sm text-white/70">{faq.a}</p>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        <section id="roadmap" className="relative mx-auto max-w-6xl px-4 pb-16 sm:pb-20">
+          <SectionTitle
+            testId="section-roadmap"
+            kicker="The Future"
+            title="Roadmap & Upcoming Features"
+            desc="What we're building for v2.0 and beyond."
+          />
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+            {[
+              {
+                title: "Semantic Search",
+                desc: "Find old messages using natural language context instead of keywords.",
+              },
+              {
+                title: "Local Knowledge Base",
+                desc: "Integrate your local PDFs and notes into the AI context for smarter replies.",
+              },
+              {
+                title: "Mobile Voice Bridge",
+                desc: "Use your phone as a wireless mic for desktop commands without the cloud.",
+              },
+              {
+                title: "Tone Matching",
+                desc: "Fine-tune the local AI to perfectly match your unique writing style.",
+              },
+            ].map((item, idx) => (
+              <div key={idx} className="flex gap-4 p-2">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0FA4AF]/20 text-[#0FA4AF] text-xs font-bold">
+                  {idx + 1}
+                </div>
+                <div>
+                  <h4 className="font-semibold text-white">{item.title}</h4>
+                  <p className="mt-1 text-sm text-white/60">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <footer className="border-t border-white/10 bg-black/10">
           <div className="mx-auto max-w-6xl px-4 py-12">
             <div className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
@@ -872,8 +980,9 @@ export default function Home() {
                 {[
                   { label: "Home", id: "top", testId: "link-footer-home" },
                   { label: "Features", id: "features", testId: "link-footer-features" },
+                  { label: "FAQ", id: "faq", testId: "link-footer-faq" },
+                  { label: "Roadmap", id: "roadmap", testId: "link-footer-roadmap" },
                   { label: "Download", id: "download", testId: "link-footer-download" },
-                  { label: "Documentation", id: "how", testId: "link-footer-docs" },
                 ].map((l) => (
                   <a
                     key={l.testId}
