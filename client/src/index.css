@@ -49,9 +49,9 @@
   --elevate-2: rgba(255, 255, 255, 0.09);
 
   /* Brand palette (H S% L%) */
-  --bg-deep-midnight: 186 100% 10%;
-  --cyan: 186 84% 37%;
-  --ice: 189 46% 77%;
+  --bg-deep-midnight: 186 95% 8%;
+  --cyan: 186 84% 42%;
+  --ice: 186 46% 77%;
   --white: 0 0% 100%;
   --alert: 15 49% 39%;
 
@@ -59,29 +59,29 @@
   --background: var(--bg-deep-midnight);
   --foreground: 0 0% 98%;
 
-  --card: 186 73% 14%;
+  --card: 186 73% 12%;
   --card-foreground: 0 0% 98%;
 
-  --popover: 186 73% 14%;
+  --popover: 186 73% 12%;
   --popover-foreground: 0 0% 98%;
 
   --primary: var(--cyan);
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 186 67% 18%;
+  --secondary: 186 67% 16%;
   --secondary-foreground: 0 0% 98%;
 
-  --muted: 186 50% 16%;
-  --muted-foreground: 189 26% 74%;
+  --muted: 186 50% 14%;
+  --muted-foreground: 186 26% 74%;
 
-  --accent: 186 67% 18%;
+  --accent: 186 67% 16%;
   --accent-foreground: 0 0% 98%;
 
   --destructive: var(--alert);
   --destructive-foreground: 0 0% 100%;
 
-  --border: 189 35% 28%;
-  --input: 189 35% 34%;
+  --border: 186 35% 26%;
+  --input: 186 35% 32%;
   --ring: var(--cyan);
 
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
@@ -115,33 +115,33 @@
 
   .aur-grid {
     background-image: radial-gradient(
-        900px 500px at 20% -20%,
-        hsl(var(--cyan) / 0.25),
-        transparent 60%
+        1000px 600px at 25% -15%,
+        hsl(var(--cyan) / 0.22),
+        transparent 65%
       ),
-      radial-gradient(800px 520px at 85% 0%, hsl(var(--ice) / 0.10), transparent 55%),
-      radial-gradient(900px 600px at 30% 110%, hsl(var(--cyan) / 0.10), transparent 55%),
-      linear-gradient(to bottom, hsl(var(--bg-deep-midnight)), hsl(186 90% 7%));
+      radial-gradient(850px 550px at 80% 5%, hsl(var(--ice) / 0.09), transparent 60%),
+      radial-gradient(950px 650px at 35% 115%, hsl(var(--cyan) / 0.09), transparent 60%),
+      linear-gradient(to bottom, hsl(var(--bg-deep-midnight)), hsl(186 85% 6%));
   }
 
   .aur-card {
     background: linear-gradient(
-      180deg,
-      hsl(var(--cyan) / 0.10),
+      185deg,
+      hsl(var(--cyan) / 0.09),
       hsl(var(--ice) / 0.03)
     );
-    border: 1px solid hsl(var(--ice) / 0.22);
+    border: 1px solid hsl(var(--ice) / 0.20);
     box-shadow:
       0 0 0 1px hsl(var(--cyan) / 0.12) inset,
-      0 30px 80px -35px rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(18px);
+      0 25px 70px -30px rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(16px);
   }
 
   .aur-glow {
     box-shadow:
-      0 0 0 1px hsl(var(--cyan) / 0.35) inset,
-      0 0 0 10px hsl(var(--cyan) / 0.06),
-      0 0 32px hsl(var(--cyan) / 0.24);
+      0 0 0 1px hsl(var(--cyan) / 0.32) inset,
+      0 0 0 8px hsl(var(--cyan) / 0.06),
+      0 0 28px hsl(var(--cyan) / 0.22);
   }
 
   .aur-noise {
@@ -153,9 +153,30 @@
     pointer-events: none;
     position: absolute;
     inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.25'/%3E%3C/svg%3E");
     mix-blend-mode: overlay;
-    opacity: 0.15;
+    opacity: 0.12;
     border-radius: inherit;
+  }
+
+  /* Human-like rotations */
+  .rotate-0\.5 {
+    transform: rotate(0.5deg);
+  }
+  
+  .rotate-1 {
+    transform: rotate(1deg);
+  }
+  
+  .-rotate-0\.5 {
+    transform: rotate(-0.5deg);
+  }
+  
+  .-rotate-1 {
+    transform: rotate(-1deg);
+  }
+
+  .hover\:rotate-1:hover {
+    transform: rotate(1deg);
   }
 }
