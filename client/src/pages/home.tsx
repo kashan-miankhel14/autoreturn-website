@@ -38,7 +38,7 @@ function ParticleField({ boost }: { boost: boolean }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
 
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
@@ -50,11 +50,12 @@ function ParticleField({ boost }: { boost: boolean }) {
     let dpr = 1;
 
     const cyan = "#0FA4AF";
+    const bg = "#003135";
 
-    const mouse = { x: 0, y: 0, active: false };
+    const mouse = { x: -1000, y: -1000, active: false };
     const onMove = (e: MouseEvent) => {
-      mouse.x = e.clientX + (Math.random() - 0.5) * 10; // Add slight randomness
-      mouse.y = e.clientY + (Math.random() - 0.5) * 10;
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
       mouse.active = true;
     };
     const onLeave = () => {
@@ -63,89 +64,85 @@ function ParticleField({ boost }: { boost: boolean }) {
 
     const resize = () => {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
-      w = canvas.clientWidth;
-      h = canvas.clientHeight;
+      w = window.innerWidth;
+      h = window.innerHeight;
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    const density = Math.max(600, Math.min(1800, Math.floor((window.innerWidth * window.innerHeight) / 600)));
+    // Higher density for "sand" effect
+    const density = Math.max(1200, Math.min(4000, Math.floor((window.innerWidth * window.innerHeight) / 250)));
     const pts = Array.from({ length: density }).map((_, i) => {
-      const x = (i / density) * w + (Math.random() - 0.5) * 50; // Less uniform distribution
-      const y = (Math.random() * h) | 0;
       return {
-        x,
-        y,
-        vx: (Math.random() - 0.5) * 0.5, // Initial random velocity
-        vy: (Math.random() - 0.5) * 0.5,
-        seed: Math.random() * 1000,
-        size: 0.8 + Math.random() * 1.8, // More size variation
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.2,
+        vy: (Math.random() - 0.5) * 0.2,
+        seed: Math.random() * Math.PI * 2,
+        size: 0.6 + Math.random() * 1.4,
+        speedFactor: 0.5 + Math.random() * 0.5,
       };
     });
 
     let t0 = performance.now();
 
     const tick = (t: number) => {
-      const dt = Math.min(40, t - t0);
+      const dt = Math.min(32, t - t0);
       t0 = t;
 
-      ctx.clearRect(0, 0, w, h);
+      // Solid background for performance with {alpha: false}
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
 
-      const time = t * 0.0003 + Math.sin(t * 0.0001) * 0.1; // Less predictable timing
-      const swirl = (window.scrollY || 0) * 0.00008;
-      const accel = boost ? 1.6 : 1;
+      const time = t * 0.0004;
+      const scrollY = window.scrollY || 0;
+      const accel = boost ? 2.5 : 1;
 
+      ctx.beginPath();
       for (let i = 0; i < pts.length; i++) {
         const p = pts[i];
 
-        // More organic wave pattern
-        const wave =
-          Math.sin((p.x * 0.0035) + time * 5.5 + p.seed) * 0.7 +
-          Math.cos((p.y * 0.0045) - time * 4.8 + p.seed) * 0.5 +
-          Math.sin(time * 2 + p.seed) * 0.2; // Extra layer of movement
+        // Fluid-like flow field
+        const nx = p.x * 0.002;
+        const ny = p.y * 0.002;
+        const angle = (Math.sin(nx + time) + Math.cos(ny - time * 0.8)) * Math.PI;
 
-        const targetY = (h * 0.5) + wave * (20 + 18 * Math.sin(time + p.seed)) + Math.sin(swirl + p.seed) * 15;
-
-        const dy = targetY - p.y;
-        p.vy += dy * (0.0004 + Math.random() * 0.0002) * accel; // Slight randomness in acceleration
-
-        p.vx += (Math.cos(time + p.seed) * 0.015 + Math.sin(swirl + p.seed) * 0.01) * accel;
+        p.vx += Math.cos(angle) * 0.02 * p.speedFactor * accel;
+        p.vy += Math.sin(angle) * 0.02 * p.speedFactor * accel;
 
         if (mouse.active) {
           const dxm = p.x - mouse.x;
           const dym = p.y - mouse.y;
           const dist2 = dxm * dxm + dym * dym;
-          const r = 120 + Math.random() * 40; // Variable repulsion radius
+          const r = 180;
           if (dist2 < r * r) {
             const dist = Math.sqrt(dist2) || 1;
-            const f = (1 - dist / r) * (0.3 + Math.random() * 0.1) * accel;
+            const f = (1 - dist / r) * 0.15 * accel;
             p.vx += (dxm / dist) * f;
             p.vy += (dym / dist) * f;
           }
         }
 
-        p.vx *= 0.98 + Math.random() * 0.01; // Slightly variable friction
-        p.vy *= 0.98 + Math.random() * 0.01;
-        p.x += p.vx * (dt * 0.07);
-        p.y += p.vy * (dt * 0.07);
+        p.vx *= 0.96;
+        p.vy *= 0.96;
+        p.x += p.vx * (dt * 0.1);
+        p.y += p.vy * (dt * 0.1);
 
-        // Wrap around with slight randomness
-        if (p.x < -15) p.x = w + 15 + Math.random() * 10;
-        if (p.x > w + 15) p.x = -15 - Math.random() * 10;
-        if (p.y < -25) p.y = h + 25 + Math.random() * 10;
-        if (p.y > h + 25) p.y = -25 - Math.random() * 10;
+        // Responsive wrapping
+        if (p.x < -20) p.x = w + 20;
+        if (p.x > w + 20) p.x = -20;
+        if (p.y < -20) p.y = h + 20;
+        if (p.y > h + 20) p.y = -20;
 
-        const alpha = 0.18 + (0.15 * Math.sin(time * 2.8 + p.seed)) + Math.random() * 0.05;
-        ctx.fillStyle = `rgba(15, 164, 175, ${Math.max(0.05, alpha)})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
+        // Draw batching for performance
+        // Only draw half the particles if performance is an issue, but we use batching here
+        const alpha = 0.1 + (0.15 * Math.sin(time + p.seed));
+        ctx.fillStyle = `rgba(15, 164, 175, ${alpha})`;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
       }
-
-      ctx.globalCompositeOperation = "source-over";
-      ctx.fillStyle = "rgba(15, 164, 175, 0.08)";
-      ctx.fillRect(0, 0, w, 1);
 
       raf = requestAnimationFrame(tick);
     };
@@ -169,8 +166,32 @@ function ParticleField({ boost }: { boost: boolean }) {
     <canvas
       ref={canvasRef}
       className="absolute inset-0 h-full w-full"
+      style={{ filter: 'blur(0.5px)' }}
       aria-hidden="true"
     />
+  );
+}
+
+function WaveDivider({ flip = false, className = "" }: { flip?: boolean; className?: string }) {
+  return (
+    <div className={cn("relative h-24 w-full overflow-hidden leading-[0]", flip && "rotate-180", className)}>
+      <svg
+        className="relative block h-full w-[200%] md:w-full"
+        data-name="Layer 1"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 1200 120"
+        preserveAspectRatio="none"
+      >
+        <path
+          d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C58.47,104.59,121.88,116,187.58,11.21c32.61-52,65.23-52,97.85-52C305.6,5.39,313.51,33,321.39,56.44Z"
+          className="fill-[#003135] opacity-30"
+        ></path>
+        <path
+          d="M985.66,92.83c-78.99-20.83-161.88-61.83-241.82-78.63-82.26-17.34-168.06-16.33-250.45.39-57.84,11.73-114,31.07-172,41.86-7.88-23.44-15.79-51.05-33.81-51.23-32.62,0-65.24,0-97.85,52C121.88,116,58.47,104.59,0,95.8V120H1200V95.8C1131.53,104.59,1055.71,97.22,985.66,92.83Z"
+          className="fill-[#003135]"
+        ></path>
+      </svg>
+    </div>
   );
 }
 
@@ -178,7 +199,7 @@ function Badge({ children, testId }: { children: React.ReactNode; testId: string
   return (
     <span
       data-testid={testId}
-      className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3 py-1 text-[12px] font-medium text-white/85 backdrop-blur transform rotate-0.5"
+      className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3 py-1 text-[12px] font-medium text-white/85 backdrop-blur"
     >
       <Sparkles className="h-3.5 w-3.5 text-[#0FA4AF]" strokeWidth={2.2} />
       {children}
@@ -191,7 +212,7 @@ function SectionTitle({ kicker, title, desc, testId }: { kicker: string; title: 
     <div className="text-center">
       <div
         data-testid={`${testId}-kicker`}
-        className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3 py-1 text-[12px] font-medium text-white/75 transform rotate-0.5"
+        className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3 py-1 text-[12px] font-medium text-white/75"
       >
         <span className="h-1.5 w-1.5 rounded-full bg-[#0FA4AF]" />
         {kicker}
@@ -210,27 +231,102 @@ function SectionTitle({ kicker, title, desc, testId }: { kicker: string; title: 
   );
 }
 
+function InboxVisual() {
+  return (
+    <div className="relative mt-4 h-24 w-full bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+      <div className="absolute inset-x-2 top-2 p-2 bg-white/10 rounded-lg flex gap-2">
+        <div className="h-2 w-2 rounded-full bg-red-400" />
+        <div className="h-2 w-2/3 bg-white/20 rounded" />
+      </div>
+      <div className="absolute inset-x-2 top-10 p-2 bg-[#0FA4AF]/10 rounded-lg flex gap-2">
+        <div className="h-2 w-2 rounded-full bg-[#0FA4AF]" />
+        <div className="h-2 w-1/2 bg-white/20 rounded" />
+      </div>
+      <div className="absolute inset-x-2 top-[72px] p-2 bg-white/5 rounded-lg flex gap-2 overflow-hidden opacity-50">
+        <div className="h-2 w-2 rounded-full bg-purple-400" />
+        <div className="h-2 w-3/4 bg-white/20 rounded" />
+      </div>
+    </div>
+  );
+}
+
+function VoiceVisual() {
+  return (
+    <div className="relative mt-4 h-24 w-full bg-white/5 rounded-xl border border-white/10 flex items-center justify-center">
+      <div className="flex items-center gap-1">
+        {[0, 1, 2, 3, 2, 1, 0].map((h, i) => (
+          <motion.div
+            key={i}
+            animate={{ height: [8, 16 + h * 8, 8] }}
+            transition={{ duration: 1, repeat: Infinity, delay: i * 0.1 }}
+            className="w-1 bg-[#0FA4AF] rounded-full"
+          />
+        ))}
+      </div>
+      <div className="absolute bottom-2 text-[8px] font-bold text-[#0FA4AF]/60 uppercase tracking-widest">Processing Voice Input</div>
+    </div>
+  );
+}
+
+function PrivacyVisual() {
+  return (
+    <div className="relative mt-4 h-24 w-full bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="relative">
+          <Shield className="h-10 w-10 text-[#0FA4AF]/40" />
+          <motion.div
+            animate={{ opacity: [0, 1, 0], scale: [0.8, 1.2, 0.8] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="absolute inset-0 bg-[#0FA4AF]/20 blur-xl rounded-full"
+          />
+        </div>
+      </div>
+      <div className="absolute inset-x-0 bottom-0 py-1 bg-[#0FA4AF]/20 text-[8px] text-center font-bold text-white uppercase">Data Stays On-Device</div>
+    </div>
+  );
+}
+
+function TaskVisual() {
+  return (
+    <div className="relative mt-4 h-24 w-full bg-white/5 rounded-xl border border-white/10 p-3">
+      <div className="flex flex-col gap-2">
+        <div className="h-1.5 w-full bg-white/10 rounded" />
+        <div className="h-1.5 w-3/4 bg-white/10 rounded" />
+        <div className="mt-1 flex items-center gap-2">
+          <motion.div
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="h-3 w-3 rounded-sm border border-[#0FA4AF] flex items-center justify-center"
+          >
+            <Check className="h-2 w-2 text-[#0FA4AF]" />
+          </motion.div>
+          <div className="h-1.5 w-1/2 bg-[#0FA4AF]/40 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FeatureCard({
   icon,
   title,
   description,
   testId,
+  visual,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
   testId: string;
+  visual?: React.ReactNode;
 }) {
-  const randomRotation = Math.random() * 2 - 1; // Random rotation between -1 and 1 degree
-  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.6, ease: "easeOut", delay: Math.random() * 0.2 }}
-      className="aur-card aur-noise group relative overflow-hidden rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300"
-      style={{ transform: `rotate(${randomRotation}deg)` }}
+      className="aur-card aur-noise group relative flex h-full flex-col overflow-hidden rounded-2xl p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(15,164,175,0.15)]"
       data-testid={testId}
     >
       <div className="absolute -right-8 -top-12 h-40 w-40 rounded-full bg-[#0FA4AF]/12 blur-2xl transition-all duration-700 group-hover:translate-y-1 group-hover:translate-x-2 group-hover:bg-[#0FA4AF]/18" />
@@ -247,6 +343,11 @@ function FeatureCard({
           </p>
         </div>
       </div>
+
+      <div className="mt-auto pt-6">
+        {visual}
+      </div>
+
       <div className="mt-6 flex items-center gap-2 text-xs font-medium text-white/50">
         <span className="inline-flex h-5 items-center rounded-full border border-white/10 bg-white/5 px-2">Local</span>
         <span className="inline-flex h-5 items-center rounded-full border border-white/10 bg-white/5 px-2">Voice</span>
@@ -256,47 +357,87 @@ function FeatureCard({
   );
 }
 
+function DraftVisual() {
+  return (
+    <div className="relative mt-4 h-24 w-full bg-white/5 rounded-xl border border-white/10 p-3 flex items-center justify-center">
+      <div className="relative">
+        <motion.div
+          animate={{ x: [0, 50, 0], opacity: [0, 1, 0] }}
+          transition={{ duration: 3, repeat: Infinity }}
+          className="absolute -top-4 left-0 text-cyan-400"
+        >
+          <Terminal className="h-4 w-4" />
+        </motion.div>
+        <div className="space-y-2">
+          <div className="h-1.5 w-24 bg-white/10 rounded" />
+          <div className="h-1.5 w-20 bg-[#0FA4AF]/30 rounded" />
+          <div className="h-1.5 w-28 bg-white/10 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FocusVisual() {
+  return (
+    <div className="relative mt-4 h-24 w-full bg-white/5 rounded-xl border border-white/10 flex items-center justify-center">
+      <div className="relative">
+        <motion.div
+          animate={{ rotate: [0, 360] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0 rounded-full border border-dashed border-[#0FA4AF]/30"
+        />
+        <Moon className="h-8 w-8 text-[#0FA4AF]" />
+      </div>
+      <div className="absolute top-2 right-2 flex items-center gap-1">
+        <div className="h-1.5 w-4 rounded-full bg-[#0FA4AF]" />
+        <div className="h-1.5 w-1.5 rounded-full bg-white/20" />
+      </div>
+    </div>
+  );
+}
+
 const FEATURES = [
   {
     icon: <Mail className="h-5 w-5" strokeWidth={2.2} />,
     title: "One Inbox for Everything",
-    description:
-      "Stop the Gmail-Slack dance. Everything important in one place, designed for humans who actually need to get work done.",
+    description: "Unify Gmail and Slack into a single stream. Stop switching apps and start focusing on what matters.",
+    visual: <InboxVisual />,
     testId: "card-feature-unified-inbox",
   },
   {
     icon: <Mic className="h-5 w-5" strokeWidth={2.2} />,
     title: "Just Talk to It",
-    description:
-      'Say "Hey Auto" and tell it what you need. Read emails, send messages, check tasks—all while your hands stay free for coffee.',
+    description: "Read, reply, and manage your day using only your voice. Hands-free productivity, simplified.",
+    visual: <VoiceVisual />,
     testId: "card-feature-voice-control",
   },
   {
     icon: <Shield className="h-5 w-5" strokeWidth={2.2} />,
-    title: "Your Data Stays Put",
-    description:
-      "Unlike those cloud assistants, AutoReturn runs on YOUR computer. Your emails never leave your machine. Ever.",
+    title: "Privacy by Design",
+    description: "All processing happens 100% locally on your machine. Your data never leaves your hardware.",
+    visual: <PrivacyVisual />,
     testId: "card-feature-local-ai",
   },
   {
     icon: <Check className="h-5 w-5" strokeWidth={2.2} />,
-    title: "Finds Your TODOs",
-    description:
-      "Automatically spots action items buried in your messages. No more \"wait, what was I supposed to do?\" moments.",
+    title: "Automated Task Flow",
+    description: "AutoReturn extracts action items from your messages automatically. Never lose a task again.",
+    visual: <TaskVisual />,
     testId: "card-feature-task-extraction",
   },
   {
     icon: <Terminal className="h-5 w-5" strokeWidth={2.2} />,
-    title: "Writes Like You",
-    description:
-      "AI-generated replies that actually sound like you wrote them. Review, tweak, send. Takes seconds, not minutes.",
+    title: "AI Draft Replies",
+    description: "Get context-aware reply suggestions that sound like you. Review, tweak, and send in seconds.",
+    visual: <DraftVisual />,
     testId: "card-feature-draft-replies",
   },
   {
     icon: <Moon className="h-5 w-5" strokeWidth={2.2} />,
-    title: "Respects Your Focus",
-    description:
-      "Set focus time and AutoReturn holds the non-urgent stuff. Because deep work shouldn't be interrupted by \"quick questions.\"",
+    title: "Intelligent Focus",
+    description: "Silence the noise. AutoReturn filters non-urgent pings so you can stay in your deep work flow.",
+    visual: <FocusVisual />,
     testId: "card-feature-quiet-hours",
   },
 ];
@@ -418,17 +559,17 @@ function Nav() {
             <Button
               data-testid="button-nav-get-started"
               size="sm"
-              className="hidden rounded-xl bg-[#0FA4AF] text-white shadow-[0_0_16px_rgba(15,164,175,0.35)] hover:bg-[#0FA4AF]/90 md:inline-flex"
+              className="hidden rounded-xl bg-[#0FA4AF] font-semibold text-white shadow-[0_0_16px_hsl(var(--cyan)/0.35)] hover:bg-[#0FA4AF]/90 md:inline-flex"
               onClick={() => {
                 document.querySelector("#get-started")?.scrollIntoView({ behavior: "smooth" });
               }}
             >
-              Get Started
+              Get AutoReturn
             </Button>
             <a
               data-testid="link-github"
               href="#"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/70 transition-colors hover:text-white"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/70 transition-all hover:bg-white/10 hover:text-white"
               onClick={(e) => {
                 e.preventDefault();
               }}
@@ -449,21 +590,21 @@ function InstallationCards({ os }: { os: OSPlatform }) {
       key: "linux" as const,
       platform: "Linux",
       formats: ".AppImage, .deb, .rpm",
-      button: "Download for Linux",
+      button: "Get for Linux",
       note: "Works great on Ubuntu, Fedora, Arch..."
     },
     {
       key: "windows" as const,
       platform: "Windows",
       formats: ".exe, .zip",
-      button: "Download for Windows",
+      button: "Get for Windows",
       note: "Windows 10+ supported"
     },
     {
       key: "macos" as const,
       platform: "macOS",
       formats: ".dmg",
-      button: "Download for macOS",
+      button: "Get for macOS",
       note: "Intel & Apple Silicon"
     },
   ];
@@ -520,6 +661,116 @@ function InstallationCards({ os }: { os: OSPlatform }) {
   );
 }
 
+function FlowDiagram() {
+  return (
+    <div className="relative h-full w-full py-2 lg:py-4">
+      <div className="flex flex-col items-center justify-center gap-8 lg:flex-row lg:gap-2">
+        {/* Input Apps */}
+        <div className="flex flex-col gap-4 lg:w-1/3">
+          {[
+            { label: "Gmail", icon: "📧", color: "#EA4335" },
+            { label: "Slack", icon: "💬", color: "#4A154B" },
+            { label: "Teams", icon: "💼", color: "#6264A7" }
+          ].map((app, idx) => (
+            <motion.div
+              key={app.label}
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 + idx * 0.1 }}
+              className="aur-card flex items-center gap-3 rounded-2xl p-4 shadow-lg lg:relative"
+            >
+              <span className="text-xl">{app.icon}</span>
+              <span className="text-[12px] font-semibold text-white/90">{app.label}</span>
+              {/* Animated bit stream indicator */}
+              <motion.div
+                animate={{ x: [0, 40], opacity: [0, 1, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, delay: idx * 0.5 }}
+                className="absolute -right-8 h-1 w-1 rounded-full bg-cyan-400 lg:block hidden"
+              />
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Central Processor */}
+        <div className="relative z-10 flex flex-col items-center lg:w-1/3">
+          <motion.div
+            animate={{
+              scale: [1, 1.05, 1],
+              rotate: [0, 2, -2, 0],
+              boxShadow: ["0 0 20px rgba(15,164,175,0.2)", "0 0 40px rgba(15,164,175,0.4)", "0 0 20px rgba(15,164,175,0.2)"]
+            }}
+            transition={{ duration: 4, repeat: Infinity }}
+            className="flex h-24 w-24 items-center justify-center rounded-2xl border-2 border-[#0FA4AF] bg-black/40 backdrop-blur-xl"
+          >
+            <div className="text-center">
+              <Shield className="mx-auto h-10 w-10 text-[#0FA4AF]" strokeWidth={2.5} />
+              <div className="mt-2 text-[10px] font-bold tracking-widest text-[#0FA4AF] uppercase">Local AI</div>
+            </div>
+          </motion.div>
+
+          <div className="mt-4 text-center">
+            <h4 className="font-[Outfit] text-base font-bold text-white">Core AI</h4>
+            <p className="max-w-[120px] text-[10px] leading-relaxed text-white/50">Processing locally</p>
+          </div>
+
+          {/* Connection Lines (SVG) - simplified for manual rendering if needed, but using lines here */}
+          <div className="absolute inset-0 -z-10 h-full w-full pointer-events-none lg:block hidden">
+            {/* We can use CSS lines or an SVG here. Let's use a simple SVG. */}
+            <svg className="h-full w-full" viewBox="0 0 400 400">
+              <motion.path
+                d="M 50 100 L 200 200"
+                fill="none"
+                stroke="#0FA4AF22"
+                strokeWidth="1"
+              />
+              <motion.path
+                d="M 50 200 L 200 200"
+                fill="none"
+                stroke="#0FA4AF22"
+                strokeWidth="1"
+              />
+              <motion.path
+                d="M 50 300 L 200 200"
+                fill="none"
+                stroke="#0FA4AF22"
+                strokeWidth="1"
+              />
+            </svg>
+          </div>
+        </div>
+
+        {/* Unified Output */}
+        <div className="lg:w-1/3">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 1 }}
+            className="aur-card aur-glow overflow-hidden rounded-2xl p-4 border-2 border-[#0FA4AF]/30"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <div className="h-1.5 w-1.5 rounded-full bg-[#0FA4AF] animate-pulse" />
+              <span className="text-[10px] font-bold text-white/80 uppercase">Unified Inbox</span>
+            </div>
+
+            <div className="space-y-2">
+              {[
+                "Daily Brief",
+                "Draft Suggestion",
+                "Task Spotted"
+              ].map((task, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-lg bg-black/30 p-2">
+                  <Mic className="h-3 w-3 text-[#0FA4AF]" />
+                  <span className="text-[10px] text-white/80">{task}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const os = useOS();
   const [boost, setBoost] = useState(false);
@@ -551,7 +802,7 @@ export default function Home() {
                     transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
                     className="block"
                   >
-                    Your Voice.
+                    Simplify Your
                   </motion.span>
                   <motion.span
                     initial={{ opacity: 0, x: -15 }}
@@ -559,7 +810,7 @@ export default function Home() {
                     transition={{ duration: 0.7, delay: 0.25, ease: "easeOut" }}
                     className="block text-[#0FA4AF]"
                   >
-                    Your AI.
+                    Communication.
                   </motion.span>
                   <motion.span
                     initial={{ opacity: 0, x: -15 }}
@@ -567,14 +818,14 @@ export default function Home() {
                     transition={{ duration: 0.7, delay: 0.4, ease: "easeOut" }}
                     className="block"
                   >
-                    Your Privacy.
+                    Mastered by Voice.
                   </motion.span>
                 </h1>
                 <p
                   data-testid="text-hero-subheadline"
                   className="mt-5 max-w-xl text-balance text-base leading-relaxed text-white/75 sm:text-lg"
                 >
-                  Tired of juggling Gmail and Slack? We built AutoReturn so your emails and messages stay on <em>your</em> computer. No cloud servers snooping around.
+                  Stop jumping between Gmail and Slack. AutoReturn unifies your messages into a single voice-controlled stream. <strong>All AI processing happens 100% locally</strong> on your hardware—private by design, not just by promise.
                 </p>
 
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -585,21 +836,21 @@ export default function Home() {
                 <div className="mt-8 grid max-w-2xl grid-cols-3 gap-6">
                   <div
                     data-testid="stat-privacy"
-                    className="aur-card rounded-2xl px-4 py-3 text-center transform rotate-1"
+                    className="aur-card rounded-2xl px-4 py-3 text-center transition-all duration-300 hover:bg-white/5"
                   >
                     <div className="font-[Outfit] text-sm font-semibold text-white">100% Yours</div>
                     <div className="mt-0.5 text-xs text-white/65">stays on your machine</div>
                   </div>
                   <div
                     data-testid="stat-offline"
-                    className="aur-card rounded-2xl px-4 py-3 text-center transform -rotate-1"
+                    className="aur-card rounded-2xl px-4 py-3 text-center transition-all duration-300 hover:bg-white/5"
                   >
                     <div className="font-[Outfit] text-sm font-semibold text-white">Works Offline</div>
                     <div className="mt-0.5 text-xs text-white/65">internet? optional</div>
                   </div>
                   <div
                     data-testid="stat-free"
-                    className="aur-card rounded-2xl px-4 py-3 text-center transform rotate-0.5"
+                    className="aur-card rounded-2xl px-4 py-3 text-center transition-all duration-300 hover:bg-white/5"
                   >
                     <div className="font-[Outfit] text-sm font-semibold text-white">Actually Free</div>
                     <div className="mt-0.5 text-xs text-white/65">no catch, promise</div>
@@ -608,111 +859,13 @@ export default function Home() {
               </div>
 
               <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.96, rotate: -1 }}
-                animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
                 className="lg:col-span-7 xl:col-span-6"
               >
-                <div
-                  data-testid="card-hero-mockup"
-                  className="aur-card aur-noise relative overflow-hidden rounded-3xl p-6 sm:p-7 shadow-[0_0_40px_-10px_rgba(15,164,175,0.25)] transform rotate-1 hover:rotate-0 transition-transform duration-500"
-                >
-                  <motion.div
-                    animate={{
-                      opacity: [0.12, 0.25, 0.12],
-                      scale: [1, 1.02, 1],
-                    }}
-                    transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#0FA4AF]/35 to-transparent"
-                  />
-
-                  <div className="flex items-center justify-between">
-                    <div className="font-[Outfit] text-sm font-semibold text-white">Unified Inbox</div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        data-testid="status-ai"
-                        className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3 py-1 text-[12px] font-medium text-white/80"
-                      >
-                        <span className="h-2 w-2 rounded-full bg-[#0FA4AF] shadow-[0_0_10px_rgba(15,164,175,0.7)]" />
-                        AI is thinking...
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 space-y-3">
-                    <div
-                      data-testid="row-gmail"
-                      className="group flex items-center justify-between rounded-2xl border border-white/15 bg-black/20 px-4 py-3 backdrop-blur hover:bg-black/25 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/8 ring-1 ring-white/15">
-                          <span className="text-sm font-bold text-white">📧</span>
-                        </span>
-                        <div>
-                          <div className="text-sm font-semibold text-white">Gmail</div>
-                          <div className="text-xs text-white/65">3 things need your attention</div>
-                        </div>
-                      </div>
-                      <span className="inline-flex items-center rounded-full bg-[#d97706]/25 px-2.5 py-1 text-[11px] font-medium text-orange-200 ring-1 ring-orange-400/20">
-                        Needs reply
-                      </span>
-                    </div>
-
-                    <div
-                      data-testid="row-slack"
-                      className="group flex items-center justify-between rounded-2xl border border-white/15 bg-black/20 px-4 py-3 backdrop-blur hover:bg-black/25 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/8 ring-1 ring-white/15">
-                          <span className="text-sm font-bold text-white">💬</span>
-                        </span>
-                        <div>
-                          <div className="text-sm font-semibold text-white">Slack</div>
-                          <div className="text-xs text-white/65">@you in #general • team standup</div>
-                        </div>
-                      </div>
-                      <span className="inline-flex items-center rounded-full border border-white/15 bg-white/8 px-2.5 py-1 text-[11px] font-medium text-white/75">
-                        Quiet mode
-                      </span>
-                    </div>
-
-                    <div
-                      data-testid="row-tasks"
-                      className="rounded-2xl border border-white/15 bg-black/15 px-4 py-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm font-semibold text-white">Tasks</div>
-                        <div className="text-xs text-white/60">Found automatically</div>
-                      </div>
-                      <div className="mt-3 space-y-2">
-                        {[
-                          "Reply to Sarah about the budget (due today)",
-                          "Confirm meeting with design team",
-                          "Review Jake's PR before EOD",
-                        ].map((t, idx) => (
-                          <div
-                            key={t}
-                            data-testid={`row-task-${idx}`}
-                            className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/8 px-3 py-2 hover:bg-white/12 transition-colors"
-                          >
-                            <span className="h-2 w-2 rounded-full bg-[#0FA4AF]" />
-                            <span className="text-xs text-white/80">{t}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <Mic className="h-4.5 w-4.5 text-[#0FA4AF]" strokeWidth={2.2} />
-                      <div>
-                        <div className="text-xs font-semibold text-white/85">Say “Hey Auto”</div>
-                        <div className="text-[11px] text-white/55">Then ask: “What’s important today?”</div>
-                      </div>
-                    </div>
-                    <div className="text-[11px] font-medium text-white/60">⌘ + Space</div>
-                  </div>
+                <div className="mt-12 lg:mt-0">
+                  <FlowDiagram />
                 </div>
               </motion.div>
             </div>
@@ -723,6 +876,8 @@ export default function Home() {
           </div>
         </section>
 
+        <WaveDivider className="relative z-10 -mt-12" />
+
         <section id="features" className="relative px-6 lg:px-12 py-16 sm:py-20">
           <SectionTitle
             testId="section-features"
@@ -731,18 +886,15 @@ export default function Home() {
             desc="Six things that matter. Built by someone who was tired of switching between 47 different apps."
           />
 
-          <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-            {FEATURES.map((f, index) => (
-              <div key={f.testId} className={
-                index < 2 ? "lg:col-span-2 xl:col-span-2" : 
-                index === 2 ? "md:col-span-2 lg:col-span-2 xl:col-span-2" : 
-                "lg:col-span-2 xl:col-span-1"
-              }>
+          <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((f) => (
+              <div key={f.testId}>
                 <FeatureCard
                   icon={f.icon}
                   title={f.title}
                   description={f.description}
                   testId={f.testId}
+                  visual={f.visual}
                 />
               </div>
             ))}
@@ -750,6 +902,7 @@ export default function Home() {
         </section>
 
         <section className="relative px-6 lg:px-12 pb-16 sm:pb-20">
+          <WaveDivider className="mb-16 opacity-30" flip />
           <SectionTitle
             testId="section-comparison"
             kicker="The honest truth"
@@ -842,8 +995,7 @@ export default function Home() {
               <div
                 key={s.title}
                 data-testid={`card-step-${idx}`}
-                className="aur-card aur-noise relative overflow-hidden rounded-2xl p-6 transform hover:scale-105 transition-all duration-300"
-                style={{ transform: `rotate(${(idx - 1) * 0.5}deg)` }}
+                className="aur-card aur-noise relative overflow-hidden rounded-2xl p-6 transition-all duration-300 hover:scale-105"
               >
                 <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#0FA4AF]/8 blur-xl" />
                 <div className="text-xs font-semibold text-white/60">Step {idx + 1}</div>
@@ -861,9 +1013,9 @@ export default function Home() {
         <section id="get-started" className="relative px-6 lg:px-12 pb-20 sm:pb-24">
           <SectionTitle
             testId="section-get-started"
-            kicker="Download it"
-            title="Pick your poison"
-            desc="Works on Linux, Windows, and macOS. Free download, no strings attached."
+            kicker="Get it now"
+            title="Pick your platform"
+            desc="Works on Linux, Windows, and macOS. 100% free, no strings attached."
           />
 
           <InstallationCards os={os} />
@@ -871,7 +1023,7 @@ export default function Home() {
           <div className="mx-auto mt-10 max-w-4xl">
             <div
               data-testid="card-release-notes"
-              className="aur-card aur-noise rounded-2xl p-6 transform rotate-0.5"
+              className="aur-card aur-noise rounded-2xl p-6 transition-all duration-300 hover:bg-white/5"
             >
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -929,6 +1081,10 @@ export default function Home() {
                 a: "Once your emails sync, absolutely. Read, search, compose drafts—all offline. Perfect for flights or sketchy WiFi.",
               },
               {
+                q: "What platforms are supported?",
+                a: "AutoReturn is available for Linux (primary), Windows, and macOS. We're working on making the experience seamless across all of them.",
+              },
+              {
                 q: "Why should I trust you?",
                 a: "Fair question. The code is open source, so you can see exactly what it does. Plus, since everything runs locally, there's nothing to hide.",
               },
@@ -950,6 +1106,7 @@ export default function Home() {
         </section>
 
         <section id="roadmap" className="relative px-6 lg:px-12 pb-16 sm:pb-20">
+          <WaveDivider className="mb-16 opacity-30" flip />
           <SectionTitle
             testId="section-roadmap"
             kicker="What's next"
@@ -975,8 +1132,8 @@ export default function Home() {
                 desc: "Train the AI on your own sent emails so replies match your writing style perfectly. Creepy? Maybe. Useful? Definitely.",
               },
             ].map((item, idx) => (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className="flex gap-5 p-3 rounded-xl hover:bg-white/5 transition-colors duration-200"
                 style={{ transform: `rotate(${(idx % 2 === 0 ? 0.2 : -0.2)}deg)` }}
               >
@@ -1057,6 +1214,6 @@ export default function Home() {
           </div>
         </footer>
       </main>
-    </div>
+    </div >
   );
 }
