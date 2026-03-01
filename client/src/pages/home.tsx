@@ -689,7 +689,7 @@ function InstallationCards({ os }: { os: OSPlatform }) {
               onClick={() => {
                 if (it.key === 'linux') {
                   const link = document.createElement('a');
-                  link.href = '/autoreturn_1.0.0_amd64.deb';
+                  link.href = 'https://github.com/kashan-miankhel14/autoreturn-website/releases/download/v1.0.0/autoreturn_1.0.0_amd64.deb';
                   link.download = 'autoreturn_1.0.0_amd64.deb';
                   document.body.appendChild(link);
                   link.click();
