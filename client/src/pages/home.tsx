@@ -687,8 +687,16 @@ function InstallationCards({ os }: { os: OSPlatform }) {
               )}
               variant={isPrimary ? "default" : "secondary"}
               onClick={() => {
-                // Mock interaction for prototype
-                window.alert(`Coming soon: ${it.button}`);
+                if (it.key === 'linux') {
+                  const link = document.createElement('a');
+                  link.href = '/autoreturn_1.0.0_amd64.deb';
+                  link.download = 'autoreturn_1.0.0_amd64.deb';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                } else {
+                  window.alert(`Coming soon: ${it.button}`);
+                }
               }}
             >
               {it.button}
@@ -704,7 +712,7 @@ function FlowDiagram() {
   return (
     <div className="relative h-full w-full py-2 lg:py-6 max-w-5xl mx-auto">
       <div className="flex flex-col items-center justify-center gap-6 lg:flex-row lg:items-center lg:gap-4 xl:gap-8">
-        
+
         {/* Step 1: Input Apps */}
         <div className="flex flex-col gap-4 w-full max-w-[200px] shrink-0">
           {[
@@ -752,7 +760,7 @@ function FlowDiagram() {
             {/* Outline path */}
             <div className="hidden lg:block h-[2px] w-full bg-[#0FA4AF]/20 rounded-full" />
             <div className="lg:hidden w-[2px] h-12 bg-[#0FA4AF]/20 rounded-full" />
-            
+
             {/* Animated Packet */}
             <motion.div
               animate={{
@@ -780,10 +788,10 @@ function FlowDiagram() {
 
             {/* Arrowhead */}
             <div className="absolute right-0 hidden lg:block text-[#0FA4AF]">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
             </div>
             <div className="absolute bottom-0 lg:hidden text-[#0FA4AF]">
-               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             </div>
           </div>
         </div>
@@ -798,10 +806,10 @@ function FlowDiagram() {
             className="flex h-28 w-28 items-center justify-center rounded-[2rem] border border-[#0FA4AF]/50 bg-black/60 backdrop-blur-xl relative overflow-hidden"
           >
             {/* Spinning gradient inside */}
-            <motion.div 
-               animate={{ rotate: 360 }}
-               transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-               className="absolute -inset-10 bg-[conic-gradient(from_0deg,transparent_0_300deg,#0FA4AF_360deg)] opacity-40 rounded-full blur-xl"
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              className="absolute -inset-10 bg-[conic-gradient(from_0deg,transparent_0_300deg,#0FA4AF_360deg)] opacity-40 rounded-full blur-xl"
             />
             {/* Core Box */}
             <div className="h-full w-full bg-black/80 rounded-[2rem] flex items-center justify-center z-10 p-2">
@@ -826,7 +834,7 @@ function FlowDiagram() {
             {/* Outline path */}
             <div className="hidden lg:block h-[3px] w-full bg-[#0FA4AF]/30 rounded-full" />
             <div className="lg:hidden w-[3px] h-12 bg-[#0FA4AF]/30 rounded-full" />
-            
+
             {/* Animated Packet */}
             <motion.div
               animate={{
@@ -840,7 +848,7 @@ function FlowDiagram() {
             </motion.div>
 
             <motion.div
-               animate={{
+              animate={{
                 y: ["-150%", "150%"],
                 opacity: [0, 0, 1, 0]
               }}
@@ -854,10 +862,10 @@ function FlowDiagram() {
 
             {/* Arrowhead */}
             <div className="absolute right-0 hidden lg:block text-[#0FA4AF]">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
             </div>
             <div className="absolute bottom-0 lg:hidden text-[#0FA4AF]">
-               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             </div>
           </div>
         </div>
@@ -871,7 +879,7 @@ function FlowDiagram() {
             className="aur-card aur-glow relative overflow-hidden rounded-[1.5rem] p-5 border-2 border-[#0FA4AF]/60 bg-black/40 shadow-[0_0_30px_rgba(15,164,175,0.15)]"
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-[#0FA4AF]/10 blur-2xl rounded-full" />
-            
+
             <div className="flex items-center gap-2.5 mb-5 relative z-10 border-b border-white/10 pb-3">
               <div className="h-2 w-2 rounded-full bg-[#0FA4AF] animate-ping" />
               <span className="text-[11px] font-extrabold text-white uppercase tracking-widest">Unified Inbox</span>
@@ -885,7 +893,7 @@ function FlowDiagram() {
               ].map((task, i) => (
                 <div key={i} className="flex items-center gap-3 rounded-lg bg-white/5 border border-white/10 px-3 py-2.5 hover:bg-white/10 transition-colors">
                   <div className="text-[#0FA4AF] bg-[#0FA4AF]/10 p-1.5 rounded-md">
-                     {task.icon}
+                    {task.icon}
                   </div>
                   <span className="text-xs font-medium text-white/90">{task.label}</span>
                 </div>
